@@ -30,66 +30,34 @@ class CrmLead(models.Model):
     # Preserve actual dates from the old system
     legacy_create_date     = fields.Datetime(string='Original Creation Date')
 
-    # Link to our To-Do tasks
+    # Link to To-Do tasks
     todo_ids = fields.One2many('todo.task', 'lead_id', string='To-Do Tasks')
 
-    # Computed latest To-Do note for display in list views
+    # Computed latest Activity / To-Do note for display in list views
     last_todo_note = fields.Text(
         string='Last To-Do / Note',
         compute='_compute_last_todo_note',
         store=True,
-        help='Displays the most recent To-Do or note attached to this lead.'
+        help='Displays the most recent Activity or To-Do note attached to this lead.'
     )
 
-    @api.depends('todo_ids', 'todo_ids.name', 'todo_ids.date', 'todo_ids.create_date')
+    @api.depends('activity_ids', 'activity_ids.summary', 'activity_ids.note', 'activity_ids.date_deadline', 'todo_ids', 'todo_ids.name')
     def _compute_last_todo_note(self):
         for record in self:
-            if record.todo_ids:
+            note_val = False
+            # Check native activity_ids first
+            if record.activity_ids:
+                latest_act = record.activity_ids.sorted(
+                    key=lambda a: (a.date_deadline or a.create_date or False, a.id),
+                    reverse=True
+                )[0]
+                note_val = latest_act.summary or latest_act.note
+            # Fallback to todo_ids if no activity found
+            if not note_val and record.todo_ids:
                 latest_todo = record.todo_ids.sorted(
                     key=lambda t: (t.date or t.create_date or False, t.id),
                     reverse=True
                 )[0]
-                record.last_todo_note = latest_todo.name
-            else:
-                record.last_todo_note = False
-
-
-class MailActivity(models.Model):
-    _inherit = 'mail.activity'
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        # Ensure context flag prevents infinite recursive creation loop
-        if self.env.context.get('skip_todo_sync'):
-            return super().create(vals_list)
-
-        activities = super().create(vals_list)
-        TodoTask = self.env['todo.task'].sudo()
-        for activity in activities:
-            if activity.res_model == 'crm.lead' and activity.res_id:
-                subject_parts = []
-                if activity.activity_type_id:
-                    subject_parts.append(activity.activity_type_id.name)
-                if activity.summary:
-                    subject_parts.append(activity.summary)
-                elif activity.note:
-                    import re
-                    clean_note = re.sub(r'<[^>]+>', ' ', activity.note)
-                    clean_note = re.sub(r'\s+', ' ', clean_note).strip()
-                    if clean_note:
-                        subject_parts.append(clean_note[:80])
-                
-                subject = " : ".join(subject_parts) if subject_parts else "New Activity"
-                
-                TodoTask.create({
-                    'name': subject,
-                    'status': 'Open',
-                    'date': activity.date_deadline or fields.Date.today(),
-                    'lead_id': activity.res_id,
-                    'allocated_to': activity.user_id.name if activity.user_id else False,
-                    'description': activity.note or activity.summary or False,
-                })
-                lead = self.env['crm.lead'].browse(activity.res_id)
-                if lead.exists():
-                    lead._compute_last_todo_note()
-        return activities
+                note_val = latest_todo.name
+            
+            record.last_todo_note = note_val
