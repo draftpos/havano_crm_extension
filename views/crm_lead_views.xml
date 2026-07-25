@@ -14,7 +14,7 @@
 
             <!-- Show single Product Interest (product_id) selection field in the form -->
             <xpath expr="//field[@name='user_id']" position="after">
-                <field name="product_id" string="Product Interest" placeholder="Select or type product..."/>
+                <field name="product_id" string="Product Interest" placeholder="Select product..." domain="[]"/>
                 <field name="custom_type_of_business" string="Type of Business"/>
                 <field name="custom_territory" string="Territory"/>
                 <field name="custom_technician" string="Technician Assigned"/>
