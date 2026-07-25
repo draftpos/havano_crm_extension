@@ -25,11 +25,11 @@
                 <field name="last_todo_note" string="Last To-Do / Note" readonly="1"/>
             </xpath>
 
-            <!-- Show Live Activities & To-Dos in unified tab with column pickers -->
+            <!-- Show Live Activities & To-Dos under Imported To-Dos tab label -->
             <xpath expr="//notebook" position="inside">
-                <page string="Activities &amp; To-Dos" name="activities_todos">
+                <page string="Imported To-Dos" name="imported_todos">
                     <field name="activity_ids">
-                        <list string="Activities" editable="bottom">
+                        <list string="To-Dos" editable="bottom">
                             <field name="activity_type_id" string="Type" optional="show"/>
                             <field name="summary" string="Summary / Subject" optional="show"/>
                             <field name="note" string="Note / Description" optional="show"/>
