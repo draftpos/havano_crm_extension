@@ -45,7 +45,6 @@ class CrmLead(models.Model):
     def _compute_last_todo_note(self):
         for record in self:
             if record.todo_ids:
-                # Get the latest todo sorted by date/create_date/id
                 latest_todo = record.todo_ids.sorted(
                     key=lambda t: (t.date or t.create_date or False, t.id),
                     reverse=True
@@ -53,3 +52,44 @@ class CrmLead(models.Model):
                 record.last_todo_note = latest_todo.name
             else:
                 record.last_todo_note = False
+
+
+class MailActivity(models.Model):
+    _inherit = 'mail.activity'
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        activities = super().create(vals_list)
+        TodoTask = self.env['todo.task'].sudo()
+        for activity in activities:
+            if activity.res_model == 'crm.lead' and activity.res_id:
+                # Build subject from activity type and summary/note
+                subject_parts = []
+                if activity.activity_type_id:
+                    subject_parts.append(activity.activity_type_id.name)
+                if activity.summary:
+                    subject_parts.append(activity.summary)
+                elif activity.note:
+                    # Strip HTML if note exists
+                    import re
+                    clean_note = re.sub(r'<[^>]+>', ' ', activity.note)
+                    clean_note = re.sub(r'\s+', ' ', clean_note).strip()
+                    if clean_note:
+                        subject_parts.append(clean_note[:80])
+                
+                subject = " : ".join(subject_parts) if subject_parts else "New Activity"
+                
+                # Create corresponding Todo task so it appears in the Imported To-Dos tab
+                todo = TodoTask.create({
+                    'name': subject,
+                    'status': 'Open',
+                    'date': activity.date_deadline or fields.Date.today(),
+                    'lead_id': activity.res_id,
+                    'allocated_to': activity.user_id.name if activity.user_id else False,
+                    'description': activity.note or activity.summary or False,
+                })
+                # Trigger recomputation of last_todo_note on the lead
+                lead = self.env['crm.lead'].browse(activity.res_id)
+                if lead.exists():
+                    lead._compute_last_todo_note()
+        return activities
