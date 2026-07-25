@@ -12,14 +12,9 @@
                 <attribute name="style">font-size: 24px !important; color: #21b799 !important; font-weight: 800 !important;</attribute>
             </xpath>
 
-            <!-- Show Product Interest (product_id) directly under the main title header with autocomplete & quick create -->
-            <xpath expr="//field[@name='name']" position="after">
-                <group class="mt-2 mb-2">
-                    <field name="product_id" string="Product Interest" placeholder="Type product interest (e.g. Pos, Fiscalisation...)..." can_create="true" can_write="true"/>
-                </group>
-            </xpath>
-
+            <!-- Show single Product Interest (product_id) selection field in the form -->
             <xpath expr="//field[@name='user_id']" position="after">
+                <field name="product_id" string="Product Interest" placeholder="Select or type product..."/>
                 <field name="custom_type_of_business" string="Type of Business"/>
                 <field name="custom_territory" string="Territory"/>
                 <field name="custom_technician" string="Technician Assigned"/>
