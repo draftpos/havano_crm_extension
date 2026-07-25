@@ -59,18 +59,20 @@ class MailActivity(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # Ensure context flag prevents infinite recursive creation loop
+        if self.env.context.get('skip_todo_sync'):
+            return super().create(vals_list)
+
         activities = super().create(vals_list)
         TodoTask = self.env['todo.task'].sudo()
         for activity in activities:
             if activity.res_model == 'crm.lead' and activity.res_id:
-                # Build subject from activity type and summary/note
                 subject_parts = []
                 if activity.activity_type_id:
                     subject_parts.append(activity.activity_type_id.name)
                 if activity.summary:
                     subject_parts.append(activity.summary)
                 elif activity.note:
-                    # Strip HTML if note exists
                     import re
                     clean_note = re.sub(r'<[^>]+>', ' ', activity.note)
                     clean_note = re.sub(r'\s+', ' ', clean_note).strip()
@@ -79,8 +81,7 @@ class MailActivity(models.Model):
                 
                 subject = " : ".join(subject_parts) if subject_parts else "New Activity"
                 
-                # Create corresponding Todo task so it appears in the Imported To-Dos tab
-                todo = TodoTask.create({
+                TodoTask.create({
                     'name': subject,
                     'status': 'Open',
                     'date': activity.date_deadline or fields.Date.today(),
@@ -88,7 +89,6 @@ class MailActivity(models.Model):
                     'allocated_to': activity.user_id.name if activity.user_id else False,
                     'description': activity.note or activity.summary or False,
                 })
-                # Trigger recomputation of last_todo_note on the lead
                 lead = self.env['crm.lead'].browse(activity.res_id)
                 if lead.exists():
                     lead._compute_last_todo_note()
