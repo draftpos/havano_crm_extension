@@ -416,19 +416,26 @@ class LegacyDataImportWizard(models.TransientModel):
         elif self.import_type == 'user':
             for r in records:
                 email = _safe_str(r.get('email') or r.get('email_id'))
-                name = _safe_str(r.get('full_name') or r.get('first_name') or email)
+                name  = _safe_str(r.get('full_name') or r.get('first_name') or email)
                 if not email:
                     skipped += 1
                     continue
-                existing = self.env['res.users'].sudo().search([('login', '=', email)], limit=1)
+                existing = self.env['res.users'].sudo().search(
+                    [('login', '=', email)], limit=1
+                )
                 if existing:
                     skipped += 1
                     continue
                 try:
-                    self.env['res.users'].sudo().create({
-                        'name': name or email,
-                        'login': email,
-                        'email': email,
+                    self.env['res.users'].sudo().with_context(
+                        no_reset_password=True,
+                        mail_create_nolog=True,
+                        mail_notrack=True,
+                    ).create({
+                        'name':      name or email,
+                        'login':     email,
+                        'email':     email,
+                        'password':  'HavanoImport@2024',
                         'groups_id': [(4, self.env.ref('base.group_user').id)],
                     })
                     created += 1
