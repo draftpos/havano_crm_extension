@@ -7,12 +7,6 @@
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="arch" type="xml">
 
-            <!-- Make the Expected Revenue field big, bold and green -->
-            <xpath expr="//field[@name='expected_revenue']" position="attributes">
-                <attribute name="style">font-size: 24px !important; color: #21b799 !important; font-weight: 800 !important;</attribute>
-            </xpath>
-
-            <!-- Show single Product Interest (product_id) selection field in the form -->
             <xpath expr="//field[@name='user_id']" position="after">
                 <field name="product_id" string="Product Interest" placeholder="Select product..." domain="[]"/>
                 <field name="custom_type_of_business" string="Type of Business"/>
