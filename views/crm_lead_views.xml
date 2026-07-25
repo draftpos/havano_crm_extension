@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Form View Extension -->
     <record id="crm_lead_view_form_inherit_custom" model="ir.ui.view">
         <field name="name">crm.lead.form.inherit.custom</field>
         <field name="model">crm.lead</field>
@@ -21,9 +22,9 @@
                 <field name="custom_demo_done" string="Demo Done"/>
                 <field name="custom_deal_size" string="Deal Size"/>
                 <field name="legacy_create_date" string="Legacy Created On" readonly="1"/>
+                <field name="last_todo_note" string="Last To-Do / Note" readonly="1"/>
             </xpath>
 
-            <!-- Keep the To-Dos tab, but remove the separate Legacy Data tab -->
             <xpath expr="//notebook" position="inside">
                 <page string="Imported To-Dos" name="imported_todos">
                     <field name="todo_ids">
@@ -38,6 +39,30 @@
                 </page>
             </xpath>
 
+        </field>
+    </record>
+
+    <!-- Tree / List View Extension to show Last To-Do Note -->
+    <record id="crm_lead_view_tree_inherit_custom" model="ir.ui.view">
+        <field name="name">crm.lead.tree.inherit.custom</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_leads"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="last_todo_note" string="Last To-Do / Note" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Opportunities Tree View Extension as well -->
+    <record id="crm_opportunity_view_tree_inherit_custom" model="ir.ui.view">
+        <field name="name">crm.opportunity.tree.inherit.custom</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_oppor"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="last_todo_note" string="Last To-Do / Note" optional="show"/>
+            </xpath>
         </field>
     </record>
 </odoo>

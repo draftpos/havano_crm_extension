@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields, api
 
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
@@ -32,3 +32,24 @@ class CrmLead(models.Model):
 
     # Link to our To-Do tasks
     todo_ids = fields.One2many('todo.task', 'lead_id', string='To-Do Tasks')
+
+    # Computed latest To-Do note for display in list views
+    last_todo_note = fields.Text(
+        string='Last To-Do / Note',
+        compute='_compute_last_todo_note',
+        store=True,
+        help='Displays the most recent To-Do or note attached to this lead.'
+    )
+
+    @api.depends('todo_ids', 'todo_ids.name', 'todo_ids.date', 'todo_ids.create_date')
+    def _compute_last_todo_note(self):
+        for record in self:
+            if record.todo_ids:
+                # Get the latest todo sorted by date/create_date/id
+                latest_todo = record.todo_ids.sorted(
+                    key=lambda t: (t.date or t.create_date or False, t.id),
+                    reverse=True
+                )[0]
+                record.last_todo_note = latest_todo.name
+            else:
+                record.last_todo_note = False
