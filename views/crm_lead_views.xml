@@ -13,7 +13,7 @@
             </xpath>
 
             <xpath expr="//field[@name='user_id']" position="after">
-                <field name="custom_product" string="Product Interest"/>
+                <field name="product_id" string="Product Interest"/>
                 <field name="custom_type_of_business" string="Type of Business"/>
                 <field name="custom_territory" string="Territory"/>
                 <field name="custom_technician" string="Technician Assigned"/>
@@ -43,7 +43,7 @@
         </field>
     </record>
 
-    <!-- Tree / List View Extension to show Last To-Do Note -->
+    <!-- Tree / List View Extension to show Last To-Do Note & Product Interest -->
     <record id="crm_lead_view_tree_inherit_custom" model="ir.ui.view">
         <field name="name">crm.lead.tree.inherit.custom</field>
         <field name="model">crm.lead</field>
@@ -51,7 +51,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
                 <field name="last_todo_note" string="Last To-Do / Note" optional="show"/>
-                <field name="custom_product" string="Product Interest" optional="show"/>
+                <field name="product_id" string="Product Interest" optional="show"/>
             </xpath>
         </field>
     </record>
@@ -64,7 +64,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
                 <field name="last_todo_note" string="Last To-Do / Note" optional="show"/>
-                <field name="custom_product" string="Product Interest" optional="show"/>
+                <field name="product_id" string="Product Interest" optional="show"/>
             </xpath>
         </field>
     </record>

@@ -9,8 +9,9 @@ class CrmLead(models.Model):
     custom_territory       = fields.Char(string='Territory')
     custom_industry        = fields.Char(string='Industry')
 
-    # Product & Deal Info
-    custom_product         = fields.Char(string='Product Interest')
+    # Product & Deal Info - Many2one selection to product catalog
+    product_id             = fields.Many2one('product.product', string='Product Interest')
+    custom_product         = fields.Char(string='Product Interest (Legacy)')
     custom_deal_size       = fields.Float(string='Deal Size')
     custom_type_of_business= fields.Char(string='Type of Business')
 
@@ -45,14 +46,12 @@ class CrmLead(models.Model):
     def _compute_last_todo_note(self):
         for record in self:
             note_val = False
-            # Check native activity_ids first
             if record.activity_ids:
                 latest_act = record.activity_ids.sorted(
                     key=lambda a: (a.date_deadline or a.create_date or False, a.id),
                     reverse=True
                 )[0]
                 note_val = latest_act.summary or latest_act.note
-            # Fallback to todo_ids if no activity found
             if not note_val and record.todo_ids:
                 latest_todo = record.todo_ids.sorted(
                     key=lambda t: (t.date or t.create_date or False, t.id),
