@@ -12,12 +12,11 @@
                 <attribute name="style">font-size: 24px !important; color: #21b799 !important; font-weight: 800 !important;</attribute>
             </xpath>
 
-            <!-- Show custom_product (Product Interest) as the main title header field -->
+            <!-- Show Product Interest under title using standard Odoo field styling (no style errors) -->
             <xpath expr="//field[@name='name']" position="after">
-                <div class="o_row">
-                    <span class="oe_inline fw-bold text-primary">Product Interest: </span>
-                    <field name="custom_product" class="oe_inline fw-bold"/>
-                </div>
+                <group class="mt-2 mb-2">
+                    <field name="custom_product" string="Product Interest"/>
+                </group>
             </xpath>
 
             <xpath expr="//field[@name='user_id']" position="after">
