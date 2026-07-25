@@ -25,17 +25,16 @@
                 <field name="last_todo_note" string="Last To-Do / Note" readonly="1"/>
             </xpath>
 
-            <!-- Show Live Activities & To-Dos under Imported To-Dos tab label -->
+            <!-- Show original todo_ids under Imported To-Dos tab with column toggling enabled -->
             <xpath expr="//notebook" position="inside">
                 <page string="Imported To-Dos" name="imported_todos">
-                    <field name="activity_ids">
+                    <field name="todo_ids">
                         <list string="To-Dos" editable="bottom">
-                            <field name="activity_type_id" string="Type" optional="show"/>
-                            <field name="summary" string="Summary / Subject" optional="show"/>
-                            <field name="note" string="Note / Description" optional="show"/>
-                            <field name="date_deadline" string="Due Date" optional="show"/>
-                            <field name="user_id" string="Assigned To" optional="show"/>
-                            <field name="create_date" string="Created On" optional="show"/>
+                            <field name="name" string="Subject"/>
+                            <field name="status" optional="show"/>
+                            <field name="date" optional="show"/>
+                            <field name="allocated_to" optional="show"/>
+                            <field name="legacy_create_date" string="Original Creation Date" optional="show"/>
                         </list>
                     </field>
                 </page>
