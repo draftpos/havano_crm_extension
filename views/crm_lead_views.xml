@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="crm_lead_view_form_inherit_custom" model="ir.ui.view">
+        <field name="name">crm.lead.form.inherit.custom</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Make the Expected Revenue field big, bold and green -->
+            <xpath expr="//field[@name='expected_revenue']" position="attributes">
+                <attribute name="style">font-size: 24px !important; color: #21b799 !important; font-weight: 800 !important;</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="custom_product" string="Product of Interest"/>
+                <field name="custom_type_of_business" string="Type of Business"/>
+                <field name="custom_territory" string="Territory"/>
+                <field name="custom_technician" string="Technician Assigned"/>
+                <field name="custom_quote" string="Quote Status"/>
+                <field name="custom_quote_date" string="Quote Date"/>
+                <field name="custom_demo_done" string="Demo Done"/>
+                <field name="custom_deal_size" string="Deal Size"/>
+                <field name="legacy_create_date" string="Legacy Created On" readonly="1"/>
+            </xpath>
+
+            <!-- Keep the To-Dos tab, but remove the separate Legacy Data tab -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Imported To-Dos" name="imported_todos">
+                    <field name="todo_ids">
+                        <list string="To-Dos" editable="bottom">
+                            <field name="name"/>
+                            <field name="status"/>
+                            <field name="date"/>
+                            <field name="allocated_to"/>
+                            <field name="legacy_create_date"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

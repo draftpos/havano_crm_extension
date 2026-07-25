@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ToDo Task Form View -->
+    <record id="todo_task_view_form" model="ir.ui.view">
+        <field name="name">todo.task.form</field>
+        <field name="model">todo.task</field>
+        <field name="arch" type="xml">
+            <form string="To-Do Task">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="status"/>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <field name="lead_id"/>
+                            <field name="allocated_to"/>
+                            <field name="legacy_create_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description">
+                            <field name="description"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ToDo Task Tree View -->
+    <record id="todo_task_view_tree" model="ir.ui.view">
+        <field name="name">todo.task.tree</field>
+        <field name="model">todo.task</field>
+        <field name="arch" type="xml">
+            <list string="To-Do Tasks">
+                <field name="name"/>
+                <field name="lead_id"/>
+                <field name="status"/>
+                <field name="date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action for ToDo Tasks -->
+    <record id="action_todo_tasks" model="ir.actions.act_window">
+        <field name="name">To-Do Tasks</field>
+        <field name="res_model">todo.task</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Menu Item (optional, under CRM) -->
+    <menuitem id="menu_todo_tasks"
+              name="Imported To-Dos"
+              parent="crm.crm_menu_sales"
+              action="action_todo_tasks"
+              sequence="50"/>
+</odoo>
