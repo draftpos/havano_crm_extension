@@ -27,6 +27,20 @@ class CrmLead(models.Model):
 
     # Demo
     custom_demo_done       = fields.Boolean(string='Demo Done')
+    custom_demo_type       = fields.Selection([
+        ('Online', 'Online'),
+        ('Onsite', 'Onsite'),
+        ('N/A', 'N/A'),
+    ], string='Demo Done Online or Onsite')
+
+    # Proposal
+    custom_proposal_status = fields.Selection([
+        ('Not Yet', 'Not Yet'),
+        ('Proposed', 'Proposed'),
+        ('Accepted', 'Accepted'),
+        ('Rejected', 'Rejected'),
+    ], string='Proposal')
+    custom_proposal_date   = fields.Date(string='Proposal Date')
 
     # Preserve actual dates from the old system
     legacy_create_date     = fields.Datetime(string='Original Creation Date')
