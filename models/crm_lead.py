@@ -2,6 +2,35 @@ from odoo import models, fields, api
 
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
+    _order = 'create_date desc, id desc'
+
+    @api.model
+    def web_read_group(self, domain, groupby, aggregates=(), limit=None, offset=0, order=None, **kwargs):
+        # When grouping by create_date (day, month, week, year), default order to descending (latest first)
+        # and expand limit to show all groups across the full database (e.g. 597 days) without 80-limit cutoff
+        if groupby and any(isinstance(g, str) and 'create_date' in g for g in groupby):
+            if not order:
+                order = 'create_date desc'
+            if not limit or limit == 80:
+                limit = 2000
+            kwargs.setdefault('unfold_read_default_limit', 500)
+        elif not order:
+            order = 'create_date desc'
+
+        return super().web_read_group(
+            domain, groupby, aggregates=aggregates, limit=limit, offset=offset, order=order, **kwargs
+        )
+
+    @api.model
+    def _read_group(self, domain, groupby=(), aggregates=(), having=(), offset=0, limit=None, order=None):
+        if groupby and any(isinstance(g, str) and 'create_date' in g for g in groupby):
+            if not order:
+                order = 'create_date desc'
+            if not limit or limit == 80:
+                limit = 2000
+        elif not order:
+            order = 'create_date desc'
+        return super()._read_group(domain, groupby=groupby, aggregates=aggregates, having=having, offset=offset, limit=limit, order=order)
 
     # ── ERPNext Legacy Fields ──────────────────────────────────────────────────
     custom_naming_series   = fields.Char(string='Legacy ID (ERPNext)')
@@ -9,13 +38,12 @@ class CrmLead(models.Model):
     custom_territory       = fields.Char(string='Territory')
     custom_industry        = fields.Char(string='Industry')
 
-    # Product & Deal Info - Many2one selection to product catalog
-    product_id             = fields.Many2one(
-        'product.product',
+    # Product & Deal Info — standalone crm.product, NO relation to product.product
+    crm_product_id         = fields.Many2one(
+        'crm.product',
         string='Product Interest',
-        compute='_compute_product_id',
-        readonly=False,
-        help='Product catalog item representing the customer interest.'
+        ondelete='set null',
+        help='CRM product representing the customer interest (independent of inventory catalog).'
     )
     custom_product         = fields.Char(string='Product Interest (Legacy)')
     custom_deal_size       = fields.Float(string='Deal Size')
@@ -32,7 +60,10 @@ class CrmLead(models.Model):
     custom_technician      = fields.Char(string='Technician Assigned')
 
     # Demo
-    custom_demo_done       = fields.Boolean(string='Demo Done')
+    custom_demo_done       = fields.Selection([
+        ('no', 'No'),
+        ('yes', 'Yes'),
+    ], string='Demo Done', default='no')
     custom_demo_type       = fields.Selection([
         ('Online', 'Online'),
         ('Onsite', 'Onsite'),
@@ -72,82 +103,18 @@ class CrmLead(models.Model):
     my_activity_date_deadline = fields.Date(
         string='My Deadline',
         compute='_compute_my_activity_date_deadline',
-        help='Deadline of the latest chatter message, activity, or To-Do on this lead.'
+        search='_search_my_activity_date_deadline',
+        help='Deadline of the earliest open activity, or latest chatter message / To-Do on this lead.'
     )
 
     activity_date_deadline = fields.Date(
         string='Next Activity Deadline',
         compute='_compute_my_activity_date_deadline',
-        help='Deadline of the latest chatter message, activity, or To-Do on this lead.'
+        search='_search_activity_date_deadline',
+        help='Deadline of the earliest open activity, or latest chatter message / To-Do on this lead.'
     )
 
-    @api.model
-    def _find_or_create_product(self, product_name):
-        if not product_name:
-            return False
-        clean_name = str(product_name).strip().strip('"')
-        if not clean_name:
-            return False
-        
-        Product = self.env['product.product'].sudo()
-        prod = Product.search([('name', '=ilike', clean_name)], limit=1)
-        if prod:
-            return prod.id
-        
-        prod = Product.search([('default_code', '=ilike', clean_name)], limit=1)
-        if prod:
-            return prod.id
-        
-        try:
-            new_prod = Product.create({
-                'name': clean_name,
-                'sale_ok': True,
-                'purchase_ok': False,
-            })
-            return new_prod.id
-        except Exception:
-            return False
 
-    @api.depends('custom_product', 'name')
-    def _compute_product_id(self):
-        for record in self:
-            prod_name = False
-            if record.custom_product and record.custom_product.strip():
-                prod_name = record.custom_product.strip()
-            elif record.name and ' - ' in record.name:
-                parts = record.name.split(' - ')
-                if len(parts) >= 2 and parts[-1].strip():
-                    prod_name = parts[-1].strip()
-            
-            if prod_name:
-                prod_id = self._find_or_create_product(prod_name)
-                record.product_id = prod_id
-            else:
-                record.product_id = False
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            if not vals.get('product_id'):
-                prod_name = vals.get('custom_product')
-                if not prod_name and vals.get('name') and ' - ' in str(vals['name']):
-                    prod_name = str(vals['name']).split(' - ')[-1].strip()
-                if prod_name:
-                    prod_id = self._find_or_create_product(prod_name)
-                    if prod_id:
-                        vals['product_id'] = prod_id
-        return super(CrmLead, self).create(vals_list)
-
-    def write(self, vals):
-        if ('custom_product' in vals or 'name' in vals) and not vals.get('product_id'):
-            prod_name = vals.get('custom_product')
-            if not prod_name and vals.get('name') and ' - ' in str(vals['name']):
-                prod_name = str(vals['name']).split(' - ')[-1].strip()
-            if prod_name:
-                prod_id = self._find_or_create_product(prod_name)
-                if prod_id:
-                    vals['product_id'] = prod_id
-        return super(CrmLead, self).write(vals)
 
     @api.depends('activity_ids', 'activity_ids.summary', 'activity_ids.note', 'activity_ids.date_deadline', 'todo_ids', 'todo_ids.name', 'todo_ids.description', 'todo_ids.date', 'message_ids', 'message_ids.body', 'message_ids.date')
     def _compute_last_chatter(self):
@@ -228,28 +195,57 @@ class CrmLead(models.Model):
     @api.depends('activity_ids', 'activity_ids.date_deadline', 'activity_ids.create_date', 'message_ids', 'message_ids.date', 'todo_ids', 'todo_ids.date', 'todo_ids.legacy_create_date')
     def _compute_my_activity_date_deadline(self):
         for record in self:
-            dates = []
-            if record.activity_ids:
-                for act in record.activity_ids:
-                    if act.date_deadline:
-                        dates.append(act.date_deadline)
-                    elif act.create_date:
-                        dates.append(act.create_date.date())
-            if record.todo_ids:
-                for todo in record.todo_ids:
-                    if todo.date:
-                        dates.append(todo.date)
-                    elif todo.legacy_create_date:
-                        dates.append(todo.legacy_create_date.date())
-                    elif todo.create_date:
-                        dates.append(todo.create_date.date())
-            if record.message_ids:
-                for msg in record.message_ids:
-                    if msg.date:
-                        dates.append(msg.date.date())
-                    elif msg.create_date:
-                        dates.append(msg.create_date.date())
+            # 1. If there are active activities, the deadline is the earliest (most urgent/overdue) open deadline
+            act_dates = [act.date_deadline for act in record.activity_ids if act.date_deadline]
+            if act_dates:
+                target_date = min(act_dates)
+            else:
+                # 2. Fall back to todo_ids / message_ids / activity create dates
+                other_dates = []
+                if record.activity_ids:
+                    for act in record.activity_ids:
+                        if act.create_date:
+                            other_dates.append(act.create_date.date())
+                if record.todo_ids:
+                    for todo in record.todo_ids:
+                        if todo.date:
+                            other_dates.append(todo.date)
+                        elif todo.legacy_create_date:
+                            other_dates.append(todo.legacy_create_date.date())
+                        elif todo.create_date:
+                            other_dates.append(todo.create_date.date())
+                if record.message_ids:
+                    for msg in record.message_ids:
+                        if msg.date:
+                            other_dates.append(msg.date.date())
+                        elif msg.create_date:
+                            other_dates.append(msg.create_date.date())
+                target_date = max(other_dates) if other_dates else False
             
-            latest_date = max(dates) if dates else False
-            record.my_activity_date_deadline = latest_date
-            record.activity_date_deadline = latest_date
+            record.my_activity_date_deadline = target_date
+            record.activity_date_deadline = target_date
+
+    def _search_my_activity_date_deadline(self, operator, value):
+        valid_operators = ('=', '!=', '<', '<=', '>', '>=', 'in', 'not in', 'like', 'ilike')
+        if operator not in valid_operators:
+            return [(1, '=', 1)]
+        self.env.cr.execute(f"""
+            SELECT DISTINCT res_id FROM mail_activity 
+            WHERE res_model = 'crm.lead' 
+              AND (user_id = %s OR user_id IS NULL)
+              AND date_deadline {operator} %s
+        """, (self.env.uid, value))
+        lead_ids = [r[0] for r in self.env.cr.fetchall()]
+        return [('id', 'in', lead_ids)]
+
+    def _search_activity_date_deadline(self, operator, value):
+        valid_operators = ('=', '!=', '<', '<=', '>', '>=', 'in', 'not in', 'like', 'ilike')
+        if operator not in valid_operators:
+            return [(1, '=', 1)]
+        self.env.cr.execute(f"""
+            SELECT DISTINCT res_id FROM mail_activity 
+            WHERE res_model = 'crm.lead' 
+              AND date_deadline {operator} %s
+        """, (value,))
+        lead_ids = [r[0] for r in self.env.cr.fetchall()]
+        return [('id', 'in', lead_ids)]
